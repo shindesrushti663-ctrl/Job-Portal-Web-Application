@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<title>AI Job Portal</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+
+.card{
+background:#ffffff;
+border-radius:14px;
+}
+
+.form-control{
+border-radius:10px;
+padding:12px;
+}
+
+.form-control:focus{
+box-shadow:none;
+border-color:#000;
+}
+
+.btn-dark{
+background:linear-gradient(90deg,#1e2329,#2b3138);
+border:none;
+}
+
+.btn-dark:hover{
+background:#000;
+}
+
+</style>
+
+</head>
+
+<body class="bg-light">
+
+<!-- NAVBAR -->
+
+<nav class="navbar navbar-dark bg-dark px-4">
+
+<a class="navbar-brand" href="/">JobPortal AI</a>
+
+<div>
+
+{% if current_user.is_authenticated %}
+
+<span class="text-white me-2">
+{{ current_user.username }} ({{ current_user.role }})
+</span>
+
+<a href="/logout" class="btn btn-outline-danger btn-sm">
+Logout
+</a>
+
+{% else %}
+
+<button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#loginModal">
+Login / Register
+</button>
+
+{% endif %}
+
+</div>
+
+</nav>
+
+
+<div class="container mt-4">
+
+<!-- SEARCH FILTERS -->
+
+<form class="row g-2 mb-4" method="GET" action="/">
+
+<div class="col-md-3">
+<input type="text" name="location" class="form-control" placeholder="Filter by Location">
+</div>
+
+<div class="col-md-3">
+<input type="text" name="category" class="form-control" placeholder="Filter by Category">
+</div>
+
+<div class="col-md-3">
+<input type="text" name="company" class="form-control" placeholder="Filter by Company">
+</div>
+
+<div class="col-md-3">
+<button class="btn btn-secondary w-100">Search</button>
+</div>
+
+</form>
+
+
+<div class="row">
+
+
+<!-- JOB LIST -->
+
+<div class="col-md-7">
+
+<h3>Available Jobs</h3>
+
+{% for job in jobs %}
+
+<div class="card mb-3 p-3 shadow-sm">
+
+<h5>{{ job.title }} <small class="text-muted">at {{ job.company }}</small></h5>
+
+<p>
+
+<strong>Location:</strong> {{ job.location }}
+
+|
+
+<strong>Salary:</strong> {{ job.salary }}
+
+</p>
+
+<p class="text-muted">
+
+{{ job.description[:120] }}...
+
+</p>
+
+<div class="d-flex gap-2">
+
+<a href="/apply/{{ job.id }}" class="btn btn-sm btn-outline-primary">
+
+Apply Now
+
+</a>
+
+<button class="btn btn-sm btn-info" onclick="fillAnalyzer(`{{ job.description }}`)">
+
+Analyze with AI
+
+</button>
+
+</div>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+
+<!-- RIGHT PANEL -->
+
+<div class="col-md-5">
+
+
+<!-- POST JOB -->
+
+{% if current_user.is_authenticated %}
+
+<div class="card p-4 shadow-sm border-0 rounded-4 mb-4">
+
+<h3 class="mb-4 fw-semibold">Post a Job</h3>
+
+<form action="/post_job" method="POST">
+
+<input type="text" name="title" class="form-control mb-3" placeholder="Job Title" required>
+
+<input type="text" name="company" class="form-control mb-3" placeholder="Company Name" required>
+
+<input type="text" name="location" class="form-control mb-3" placeholder="Location" required>
+
+<input type="text" name="category" class="form-control mb-3" placeholder="Category (e.g. IT, Sales)" required>
+
+<input type="text" name="salary" class="form-control mb-3" placeholder="Salary Range">
+
+<textarea name="description" rows="4" class="form-control mb-3" placeholder="Job Description" required></textarea>
+
+<button class="btn btn-dark w-100 py-3">
+
+Post Job
+
+</button>
+
+</form>
+
+</div>
+
+{% endif %}
+
+
+<!-- AI ANALYZER -->
+
+<div class="card p-3">
+
+<h4>AI Match Analyzer</h4>
+
+<textarea id="jobDesc" class="form-control mb-2" placeholder="Job Description"></textarea>
+
+<textarea id="userSkills" class="form-control mb-2" placeholder="Your Skills"></textarea>
+
+<button onclick="runAI()" class="btn btn-success w-100">
+
+Analyze
+
+</button>
+
+<div id="res" class="mt-2 p-2 bg-white border rounded d-none"></div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- LOGIN MODAL -->
+
+<div class="modal fade" id="loginModal">
+
+<div class="modal-dialog">
+
+<div class="modal-content">
+
+<div class="modal-body">
+
+<ul class="nav nav-tabs mb-3">
+
+<li class="nav-item">
+
+<button class="nav-link active" data-bs-toggle="tab" data-bs-target="#loginTab">
+
+Login
+
+</button>
+
+</li>
+
+<li class="nav-item">
+
+<button class="nav-link" data-bs-toggle="tab" data-bs-target="#regTab">
+
+Register
+
+</button>
+
+</li>
+
+</ul>
+
+
+<div class="tab-content">
+
+
+<div class="tab-pane fade show active" id="loginTab">
+
+<form action="/login" method="post">
+
+<input name="username" class="form-control mb-2" placeholder="Username">
+
+<input type="password" name="password" class="form-control mb-2" placeholder="Password">
+
+<button class="btn btn-primary w-100">
+
+Login
+
+</button>
+
+</form>
+
+</div>
+
+
+<div class="tab-pane fade" id="regTab">
+
+<form action="/register" method="post">
+
+<input name="username" class="form-control mb-2" placeholder="Username">
+
+<input type="password" name="password" class="form-control mb-2" placeholder="Password">
+
+<select name="role" class="form-select mb-2">
+
+<option>Job Seeker</option>
+
+<option>Employer</option>
+
+</select>
+
+<button class="btn btn-success w-100">
+
+Register
+
+</button>
+
+</form>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+
+<script>
+
+function fillAnalyzer(desc)
+{
+document.getElementById('jobDesc').value = desc;
+}
+
+
+async function runAI()
+{
+
+const res = await fetch('/analyze',
+{
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({
+job_description:document.getElementById('jobDesc').value,
+user_skills:document.getElementById('userSkills').value
+})
+})
+
+const data = await res.json()
+
+const resDiv = document.getElementById('res')
+
+resDiv.classList.remove('d-none')
+
+resDiv.innerText = data.result || data.error
+
+}
+
+</script>
+
+</body>
+</html>
